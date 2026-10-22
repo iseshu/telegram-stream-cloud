@@ -1,0 +1,11 @@
+.env
+.env.*
+.git
+.agents
+.codex
+.aws
+data
+bin
+*.log
+
+dist

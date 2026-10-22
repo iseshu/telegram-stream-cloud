@@ -1,0 +1,22 @@
+name: Verify and build
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o bin/filestreambot .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: filestreambot-linux-amd64
+          path: bin/filestreambot

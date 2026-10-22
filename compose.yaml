@@ -1,0 +1,17 @@
+services:
+  filestream:
+    build: .
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      BIND_ADDRESS: 0.0.0.0
+      PORT: 8080
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - filestream-data:/data
+    mem_limit: 2g
+    restart: unless-stopped
+    stop_grace_period: 30s
+volumes:
+  filestream-data:
