@@ -13,7 +13,9 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -80,8 +82,26 @@ func (s *Server) signature(id string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 func (s *Server) link(route, id string) string {
-	return s.cfg.BaseURL + route + id + "?sig=" + s.signature(id)
+	name := "file.bin"
+	if m, e := s.store.Get(id); e == nil {
+		name = linkFilename(m.Name)
+	}
+	return s.cfg.BaseURL + route + id + s.signature(id) + "/" + url.PathEscape(name)
 }
+func linkFilename(name string) string {
+	name = path.Base(strings.ReplaceAll(name, "\\", "/"))
+	name = strings.Map(func(r rune) rune {
+		if r < 32 || r == 127 {
+			return -1
+		}
+		return r
+	}, name)
+	if name == "" || name == "." || name == "/" || name == ".." {
+		return "file.bin"
+	}
+	return name
+}
+
 func parseRange(value string, size int64) (start, end int64, partial bool, err error) {
 	if value == "" || !strings.HasPrefix(value, "bytes=") || strings.Contains(value, ",") {
 		return 0, size - 1, false, nil
@@ -240,15 +260,34 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) (Manifest, bo
 		http.Error(w, "method not allowed", 405)
 		return Manifest{}, false
 	}
-	id := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
-	sig, e := hex.DecodeString(r.URL.Query().Get("sig"))
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/")
+	var id, encodedSignature, name string
+	switch {
+	case len(parts) == 3 && len(parts[1]) == 48+sha256.Size*2:
+		id = parts[1][:48]
+		encodedSignature = parts[1][48:]
+		name = parts[2]
+	case len(parts) == 2:
+		id = parts[1]
+		encodedSignature = r.URL.Query().Get("sig")
+	default:
+		w.Header().Set("Cache-Control", "no-store")
+		http.Error(w, "invalid link", 403)
+		return Manifest{}, false
+	}
+	sig, e := hex.DecodeString(encodedSignature)
 	want, _ := hex.DecodeString(s.signature(id))
 	if !validID(id) || e != nil || !hmac.Equal(sig, want) {
+		w.Header().Set("Cache-Control", "no-store")
 		http.Error(w, "invalid link", 403)
 		return Manifest{}, false
 	}
 	m, e := s.store.Get(id)
 	if e != nil {
+		http.NotFound(w, r)
+		return Manifest{}, false
+	}
+	if len(parts) == 3 && name != linkFilename(m.Name) {
 		http.NotFound(w, r)
 		return Manifest{}, false
 	}

@@ -5,7 +5,7 @@ Initial Go implementation of the Telegram-backed streaming origin and cloud leec
 ## Included
 
 - Persistent, isolated worker sessions with round-robin reads and flood-wait handling.
-- Signed player, stream and download links; precise single-range responses and virtual multipart files.
+- Named signed links such as `/watch/FILE_IDHASH/filename.ext` (also `/inline/` and `/dl/`); precise single-range responses and virtual multipart files.
 - Bounded header/tail cache and coalesced requests; cancellation and stream admission control.
 - URL inspection, parallel range uploads across ready workers, sequential compatibility mode, and single-slice disk fallback.
 - Persistent job progress, explicit resume, and channel manifest backups/restoration.

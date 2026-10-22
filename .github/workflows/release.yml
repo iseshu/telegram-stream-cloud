@@ -21,9 +21,17 @@ jobs:
           for arch in amd64 arm64; do
             CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath -ldflags="-s -w -X main.version=$GITHUB_REF_NAME" -o "dist/filestreambot-linux-$arch" .
           done
+          git archive --format=zip --prefix=telegram-stream-cloud/ --output=dist/telegram-stream-cloud-source.zip HEAD
+          cp THIRD_PARTY_NOTICES.md dist/
           cd dist
-          sha256sum filestreambot-* > SHA256SUMS
+          sha256sum filestreambot-* telegram-stream-cloud-source.zip > SHA256SUMS
       - name: Publish tag assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --draft --title "FileStream $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+            gh release edit "$GITHUB_REF_NAME" --draft --title "Telegram Stream Cloud $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --draft --title "Telegram Stream Cloud $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+          fi

@@ -37,7 +37,7 @@ One leech job runs at a time, using all configured ready workers when the source
 
 ## HTTP behavior
 
-`/watch/ID?sig=...` is the player, `/inline/ID?sig=...` streams, and `/dl/ID?sig=...` downloads. Links are signed bearer capabilities with no expiry: anyone with the link can access the file. Preserve `data/link.key` to keep links valid. Deleting a local manifest revokes origin access; an enabled CDN may retain content until its TTL expires.
+`/watch/FILE_IDHASH/filename.ext` is the player, `/inline/FILE_IDHASH/filename.ext` streams, and `/dl/FILE_IDHASH/filename.ext` downloads. The FILE_IDHASH segment combines the file identifier and its verification hash; filenames are URL-encoded, with no query string required. Links are signed bearer capabilities with no expiry: anyone with the link can access the file. Preserve `data/link.key` to keep links valid. Deleting a local manifest revokes origin access; an enabled CDN may retain content until its TTL expires.
 
 GET and HEAD, ETags, If-None-Match, If-Range, single-byte probes, suffix/open ranges, and 416 responses are supported. Multiple requested ranges are ignored and receive a full 200 response. Files are split into raw bytes and stitched without remuxing. Browser playback depends on codec support; VLC handles a wider range of formats. There is no transcoding or adaptive bitrate output.
 
@@ -47,12 +47,12 @@ GET and HEAD, ETags, If-None-Match, If-Range, single-byte probes, suffix/open ra
 
 This service is a single origin, not a globally distributed CDN. An external CDN must support your media traffic, object sizes, and byte ranges. Default responses use `private` caching. To opt into shared edge caching, set `CDN_CACHE_SECONDS` to an appropriate TTL and configure the CDN to:
 
-1. Include the **entire query string including `sig`** in its cache key, or validate signatures at the edge before serving cached content.
+1. Include the **entire signed URL path, including FILE_IDHASH**, in its cache key. Older query-signed links also require the signature query parameter in the cache key.
 2. Cache only successful media GET/HEAD responses; bypass `/watch/`, `/health`, and `/ready`.
 3. Respect range semantics and origin cache headers. Disable content transformation/compression for media.
 4. Retain the exact public path and query when forwarding to the origin.
 
-Never configure a cache rule that drops the signature from the key without edge authorization. Nginx response buffering and CDN object caching are separate settings. `X-Accel-Buffering: no` assists Nginx; it cannot override every CDN product's buffering behavior.
+Never configure a cache rule that drops or normalizes away the verification hash without edge authorization. Nginx response buffering and CDN object caching are separate settings. `X-Accel-Buffering: no` assists Nginx; it cannot override every CDN product's buffering behavior.
 
 ## Resources and recovery
 

@@ -8,6 +8,8 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"path"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -169,7 +171,11 @@ func TestHTTPRealContentLength(t *testing.T) {
 	s, m, _ := testServer(t)
 	ts := httptest.NewServer(s.Handler())
 	defer ts.Close()
-	r, e := http.NewRequest("GET", ts.URL+"/inline/"+m.ID+"?sig="+s.signature(m.ID), nil)
+	u, e := url.Parse(s.link("/inline/", m.ID))
+	if e != nil {
+		t.Fatal(e)
+	}
+	r, e := http.NewRequest("GET", ts.URL+u.RequestURI(), nil)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -211,5 +217,50 @@ func TestCanceledViewerReleasesFetch(t *testing.T) {
 	case <-src.stopped:
 	case <-time.After(time.Second):
 		t.Fatal("upstream fetch leaked")
+	}
+}
+
+func TestNamedSignedPath(t *testing.T) {
+	s, m, _ := testServer(t)
+	m.Name = "Film 2026 #1 తెలుగు.mp4"
+	if e := s.store.Save(m); e != nil {
+		t.Fatal(e)
+	}
+	for _, route := range []string{"/watch/", "/inline/", "/dl/"} {
+		raw := s.link(route, m.ID)
+		u, e := url.Parse(raw)
+		if e != nil || u.RawQuery != "" {
+			t.Fatal("unexpected query", raw)
+		}
+		parts := strings.Split(strings.TrimPrefix(u.Path, "/"), "/")
+		if len(parts) != 3 || parts[2] != m.Name || len(parts[1]) != 112 {
+			t.Fatal(raw)
+		}
+		r := httptest.NewRequest("HEAD", raw, nil)
+		w := httptest.NewRecorder()
+		s.Handler().ServeHTTP(w, r)
+		if w.Code != 200 {
+			t.Fatalf("%s returned %d", raw, w.Code)
+		}
+		token := parts[1]
+		replacement := "0"
+		if token[48] == '0' {
+			replacement = "1"
+		}
+		bad := strings.Replace(raw, token, token[:48]+replacement+token[49:], 1)
+		w = httptest.NewRecorder()
+		s.Handler().ServeHTTP(w, httptest.NewRequest("HEAD", bad, nil))
+		if w.Code != 403 {
+			t.Fatal("accepted forged hash")
+		}
+	}
+	raw := s.link("/watch/", m.ID)
+	u, _ := url.Parse(raw)
+	u.Path = path.Dir(u.Path) + "/different.mp4"
+	u.RawPath = ""
+	w := httptest.NewRecorder()
+	s.Handler().ServeHTTP(w, httptest.NewRequest("GET", u.String(), nil))
+	if w.Code != 404 {
+		t.Fatal("accepted wrong filename")
 	}
 }
