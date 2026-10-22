@@ -2,6 +2,7 @@ name: Verify and build
 on:
   push:
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -15,8 +16,14 @@ jobs:
           cache: true
       - run: go vet ./...
       - run: go test -race ./...
-      - run: CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o bin/filestreambot .
+      - name: Build Linux binaries
+        run: |
+          mkdir -p dist
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -buildvcs=false -trimpath -ldflags='-s -w' -o "dist/filestreambot-linux-$arch" .
+          done
       - uses: actions/upload-artifact@v4
         with:
-          name: filestreambot-linux-amd64
-          path: bin/filestreambot
+          name: filestreambot-linux
+          path: dist/filestreambot-linux-*
+          if-no-files-found: error
