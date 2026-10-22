@@ -251,7 +251,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/dl/", s.media)
 	mux.HandleFunc("/watch/", s.player)
 	mux.HandleFunc("/assets/", playerAsset)
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) })
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		s.home(w, r)
+	})
 	return mux
 }
 func (s *Server) authorize(w http.ResponseWriter, r *http.Request) (Manifest, bool) {
