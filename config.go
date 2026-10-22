@@ -87,7 +87,7 @@ func loadConfig(path string) (Config, error) {
 	if e != nil {
 		return c, e
 	}
-	re := regexp.MustCompile(`\d+:[A-Za-z0-9_-]+`)
+	re := regexp.MustCompile(`\\d+:[A-Za-z0-9_-]+`)
 	seen := map[string]bool{c.PrimaryToken: true}
 	for _, t := range re.FindAllString(get("MULTI_BOT_TOKENS", ""), -1) {
 		if !seen[t] {
@@ -100,9 +100,10 @@ func loadConfig(path string) (Config, error) {
 	if e != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
 		return c, errors.New("BASE_URL must be an HTTP(S) URL without credentials, query, or fragment")
 	}
-	port, e := number("PORT", 8080)
+	portRaw := get("PORT", get("SERVER_PORT", "8080"))
+	port, e := strconv.ParseInt(portRaw, 10, 64)
 	if e != nil || port < 1 || port > 65535 {
-		return c, errors.New("invalid PORT")
+		return c, errors.New("invalid PORT or SERVER_PORT")
 	}
 	c.Address = net.JoinHostPort(get("BIND_ADDRESS", "0.0.0.0"), strconv.FormatInt(port, 10))
 	c.DataDir = get("DATA_DIR", "data")
