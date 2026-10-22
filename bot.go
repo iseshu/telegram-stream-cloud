@@ -233,12 +233,16 @@ func (b *Bot) handle(ctx context.Context, m botMessage) {
 		}
 		call, cancel := context.WithTimeout(ctx, 90*time.Second)
 		defer cancel()
-		manifest, e := b.leech.restore(call, mid)
+		manifest, backupID, e := b.leech.restore(call, mid)
 		if e != nil {
 			b.reply(ctx, m.Chat.ID, "Manifest restoration failed: "+safeError(e))
 			return
 		}
-		b.reply(ctx, m.Chat.ID, b.links(manifest))
+		text := b.links(manifest)
+		if backupID > 0 {
+			text += fmt.Sprintf("\n\nRecovery manifest saved in the storage channel as message %d.", backupID)
+		}
+		b.reply(ctx, m.Chat.ID, text)
 
 	case "/link":
 		if len(fields) != 2 {
