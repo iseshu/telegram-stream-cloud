@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"mime"
 	"net/http"
@@ -251,6 +250,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/inline/", s.media)
 	mux.HandleFunc("/dl/", s.media)
 	mux.HandleFunc("/watch/", s.player)
+	mux.HandleFunc("/assets/", playerAsset)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) })
 	return mux
 }
@@ -398,8 +398,6 @@ func (s *Server) media(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var playerTemplate = template.Must(template.New("player").Parse(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Name}} · FileStream</title><style>body{margin:0;background:#101218;color:#e7e9f0;font:16px system-ui}main{max-width:1100px;margin:5vh auto;padding:24px}h1{font-size:clamp(20px,4vw,32px);overflow-wrap:anywhere}video{width:100%;max-height:70vh;background:#000;border-radius:16px}nav{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}a,button{background:#292f40;color:#e7e9f0;border:1px solid #49536b;padding:12px 18px;border-radius:9px;text-decoration:none;cursor:pointer;font:inherit}p{color:#a9b2c9}input{width:100%;box-sizing:border-box;background:#181d29;color:#c5d6ff;border:1px solid #49536b;padding:12px;border-radius:8px}</style><main><p>FILESTREAM</p><h1>{{.Name}}</h1><video id="video" controls playsinline preload="metadata" src="{{.Stream}}"></video><nav><button id="copy">Copy stream link</button><a href="{{.Download}}">Download</a><button id="vlc">Open in VLC</button></nav><input id="link" aria-label="Stream URL" readonly value="{{.Stream}}"><p id="hint">Space: play/pause · ←/→: seek 10 seconds · F: fullscreen. Playback depends on your browser's codec support.</p></main><script>const v=document.getElementById('video'),l=document.getElementById('link');document.getElementById('copy').onclick=async()=>{try{await navigator.clipboard.writeText(l.value);document.getElementById('hint').textContent='Stream link copied'}catch(e){l.select();document.getElementById('hint').textContent='Copy the selected link'}};document.getElementById('vlc').onclick=()=>{location.href='vlc://'+l.value};document.addEventListener('keydown',e=>{if(/INPUT|BUTTON|A|TEXTAREA/.test(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();v.paused?v.play():v.pause()}if(e.key==='ArrowRight'&&Number.isFinite(v.duration)){e.preventDefault();v.currentTime=Math.min(v.duration,v.currentTime+10)}if(e.key==='ArrowLeft'){e.preventDefault();v.currentTime=Math.max(0,v.currentTime-10)}if(e.key.toLowerCase()==='f')v.requestFullscreen?.()})</script></html>`))
-
 func (s *Server) player(w http.ResponseWriter, r *http.Request) {
 	m, ok := s.authorize(w, r)
 	if !ok {
@@ -409,7 +407,7 @@ func (s *Server) player(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("Content-Security-Policy", "default-src 'none'; media-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; media-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'none'; frame-ancestors 'none'")
 	if r.Method == "HEAD" {
 		return
 	}

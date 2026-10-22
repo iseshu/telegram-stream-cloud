@@ -24,3 +24,7 @@ The automated suite and Go vet pass locally. Live read-only checks authenticated
 No live media upload or multi-gigabyte load test has been performed. Local race detection is unavailable because this environment has no C compiler; the GitHub workflow runs `go test -race` before creating a draft release. ARM64 is cross-compiled and not executed locally. Docker execution has not been tested in this environment.
 
 This is a streaming origin. A global CDN, HTTPS/domain routing, and hosting must be configured separately. Unknown-length remote sources are rejected; safe resume requires a source validator. The cache prioritizes header/tail blocks and does not parse media indexes. Full browser codec compatibility and instant seeking are not guaranteed.
+
+## JPlayer web player
+
+The watch page uses self-hosted [JPlayer](https://github.com/devgamer383/jplayer) assets pinned to commit `f258e127fc5caf14f2ad7327886412c334223cc5`, embedded in the binary. It includes playback speed, volume, seeking, fullscreen, copy-link, download, and VLC controls. Named `/watch/FILE_IDHASH/filename.ext` links are preserved. Playback uses the browser’s native HTTP range pipeline; the upstream incomplete MKV demuxer is bypassed. Unsupported codecs still require an external player. See `web/vendor/jplayer/LICENSE.md` for its MIT license.

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{.Name}} · Telegram Stream Cloud</title>
+<link rel="stylesheet" href="/assets/vendor/jplayer/plyr.css">
+<link rel="stylesheet" href="/assets/player.css">
+<script defer src="/assets/vendor/jplayer/plyr.min.js"></script>
+<script defer src="/assets/player.js"></script>
+</head>
+<body><main>
+<header><p class="brand">TELEGRAM STREAM CLOUD <span>JPLAYER</span></p><h1>{{.Name}}</h1></header>
+<section class="screen" aria-label="Video player">
+<video id="video" controls playsinline preload="metadata" data-stream="{{.Stream}}"></video>
+</section>
+<nav aria-label="Playback actions"><button id="copy" type="button">Copy stream link</button><a href="{{.Download}}">Download file</a><button id="vlc" type="button">Open in VLC ↗</button></nav>
+<label for="link">Direct stream link</label><input id="link" readonly value="{{.Stream}}" spellcheck="false">
+<p id="status" role="status" aria-live="polite"></p>
+<p class="hint">Space: play / pause · ← / →: seek · F: fullscreen · ?: shortcuts</p>
+<p class="hint">Playback depends on your browser’s codec support. Open in VLC if a video or audio format is unsupported.</p>
+<noscript><p>Enable JavaScript to use JPlayer, or <a href="{{.Stream}}">open the direct stream</a>.</p></noscript>
+</main></body></html>

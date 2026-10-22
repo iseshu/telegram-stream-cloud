@@ -81,3 +81,7 @@ CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags='-s -w' -o bin/filestr
 CI builds on pushes and pull requests. Pushing a `v*` tag runs checks and creates a draft release with static amd64/arm64 binaries and SHA256 checksums. Publishing the draft and deploying the service are separate steps.
 
 Unit/integration tests cover exact ranges across virtual parts, conditional responses, admission limits, cache concurrency, manifest validation, URL address restrictions, and changing remote validators. Live throughput, real multi-gigabyte uploads, recovery under Telegram throttling, and 2 GB container load testing require deployment measurements.
+
+## JPlayer web player
+
+The watch page uses self-hosted [JPlayer](https://github.com/devgamer383/jplayer) assets pinned to commit `f258e127fc5caf14f2ad7327886412c334223cc5`, embedded in the binary. It includes playback speed, volume, seeking, fullscreen, copy-link, download, and VLC controls. Named `/watch/FILE_IDHASH/filename.ext` links are preserved. Playback uses the browser’s native HTTP range pipeline; the upstream incomplete MKV demuxer is bypassed. Unsupported codecs still require an external player. See `web/vendor/jplayer/LICENSE.md` for its MIT license.
